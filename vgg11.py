@@ -8,9 +8,10 @@ from torchvision import datasets, transforms
 import numpy as np
 import math
 import random
-
 from BBbound import BBbound
 from AdaBBbound import AdaBBbound
+
+
 class VGG(nn.Module):
 
     def __init__(self, features, num_classes=10, init_weights=True):
@@ -165,7 +166,9 @@ def main():
 
     model =  vgg11_bn().to(device)
     steps = len(train_loader)
+    optimizer = AdaBBbound(model.parameters(), steps=steps, beta = 4./steps, weight_decay=5e-4)
 
+    # optimizer = BBbound(model.parameters(), steps=steps,beta = 4./steps,weight_decay=5e-4)
     optimizer = BBbound(model.parameters(), steps=steps,beta = 4./steps,weight_decay=5e-4)
 
     for epoch in range(1, args.epochs + 1):

@@ -4,21 +4,18 @@ import math
 
 class AdaBBbound(Optimizer):
     def __init__(self,params,
-            steps=400,gamma=1e-3,beta=0.01,
+            steps=400, beta=0.01,
             weight_decay=0., lr=1e-3, beta2=0.999, bblr=0.1,eps=1e-8,
              ):
-        assert steps > 0, ValueError("Invalid steps: {}".format(steps))
-        assert weight_decay >= 0.0, ValueError("Invalid weight_decay value: {}".format(weight_decay))
         assert lr > 0.0, ValueError("Invalid initial learning rate: {}".format(lr))
-        if not 0.0 <= eps:
-            raise ValueError("Invalid epsilon value: {}".format(eps))
-        if not 0.0 <= beta2 < 1.0:
-            raise ValueError("Invalid beta parameter at index 0: {}".format(beta2))
-        if not 0.0 <= bblr:
-            raise ValueError("Invalid final learning rate: {}".format(bblr))
+        assert steps > 0, ValueError("Invalid steps: {}".format(steps))
+        assert 0.0 < beta <= 1.0, ValueError("Invalid beta value: {}".format(beta))
+        assert 0.0 < beta2 <= 1.0, ValueError("Invalid beta value: {}".format(beta2))
+        assert eps > 0.0, ValueError("Invalid epsilon value: {}".format(eps))
+        assert bblr > 0.0, ValueError("Invalid final learning rate: {}".format(bblr))
      
         defaults = dict(
-            steps=int(steps),gamma=gamma,beta=beta,
+            steps=int(steps), beta=beta,
             lr=lr, beta2=beta2, bblr=bblr,
             eps=eps,weight_decay=weight_decay
         )
@@ -68,10 +65,10 @@ class AdaBBbound(Optimizer):
                 if abs(sum_dp_dg) >= 1e-10:
                     lr_hat = sum_dp_norm / (sum_dp_dg * group['steps'])
                     lr = abs(lr_hat)
-                    pre_lr = group['bblr']
+                    self.pre_lr = group['bblr']
                     group['bblr'] = lr
-                    
-            upper_bound = pre_lr * (1 + 1 / (group['gamma'] * state['n_iter']))
+
+            upper_bound = self.pre_lr * (1 + 1 / ((1-group['beta2']) * state['n_iter']))
             if group['bblr'] > upper_bound:
               group['bblr'] = upper_bound
 
@@ -94,8 +91,8 @@ class AdaBBbound(Optimizer):
                 bias_correction2 = 1 - beta2 ** state['n_iter']
                 step_size = group['lr'] * math.sqrt(bias_correction2)
                 
-                lower_bound = group['bblr'] * (1 - 1 / (group['gamma'] * state['n_iter'] + 1))
-                upper_bound = group['bblr'] * (1 + 1 / (group['gamma'] * state['n_iter']))
+                lower_bound = group['bblr'] * (1 - 1 / ((1-group['beta2']) * state['n_iter'] + 1))
+                upper_bound = group['bblr'] * (1 + 1 / ((1-group['beta2']) * state['n_iter']))
                 step_size = torch.full_like(denom, step_size)
                 step_size.div_(denom).clamp_(lower_bound, upper_bound).mul_(grad)
             
