@@ -162,6 +162,7 @@ def set_seed(seed):
     torch.cuda.manual_seed_all(seed)  # gpu
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
+    
 def train(args, model, device, train_loader, optimizer, epoch):
     model.train()
     for batch_idx, (data, target) in enumerate(train_loader):
@@ -169,7 +170,6 @@ def train(args, model, device, train_loader, optimizer, epoch):
         optimizer.zero_grad()
         output = model(data)
         loss = F.cross_entropy(output, target)
-        lo += loss.item()
         loss.backward()
         optimizer.step()
         if batch_idx % args.log_interval == 0:
@@ -209,9 +209,8 @@ def main():
                         help='disables CUDA training')
     parser.add_argument('--seed', type=int, default=1, metavar='S',
                         help='random seed (default: 1)')
-    parser.add_argument('--log-interval', type=int, default=10, metavar='N',
+    parser.add_argument('--log-interval', type=int, default=20, metavar='N',
                         help='how many batches to wait before logging training status')
-
     parser.add_argument('--save-model', action='store_true', default=True,
                         help='For Saving the current Model')
     args = parser.parse_args()
@@ -244,9 +243,9 @@ def main():
 
     model =  ResNet18().to(device)
     steps = len(train_loader)
-
+    
+    optimizer = AdaBBbound(model.parameters(), steps=steps, beta = 4./steps, weight_decay=5e-4)
     # optimizer = BBbound(model.parameters(), steps=steps,beta = 4./steps,weight_decay=5e-4)
-    optimizer = BBbound(model.parameters(), steps=steps,beta = 4./steps,weight_decay=5e-4)
 
     for epoch in range(1, args.epochs + 1):
         train(args, model, device, train_loader, optimizer, epoch)

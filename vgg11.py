@@ -20,10 +20,8 @@ class VGG(nn.Module):
         self.classifier = nn.Sequential(
             nn.Linear(512, 512),
             nn.ReLU(True),
-#            nn.Dropout(0.5),
             nn.Linear(512, 512),
             nn.ReLU(True),
-#            nn.Dropout(0.5),
             nn.Linear(512, num_classes),
         )
         if init_weights:
@@ -99,7 +97,7 @@ def train(args, model, device, train_loader, optimizer, epoch):
         if batch_idx % args.log_interval == 0:
             print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}|lr {:05.5f}'.format(
                 epoch, batch_idx * len(data), len(train_loader.dataset),
-                       100. * batch_idx / len(train_loader), loss.item(),optimizer.param_groups[0]['lr']))
+                       100. * batch_idx / len(train_loader), loss.item()))
 
 def test(args, model, device, test_loader):
     model.eval()
@@ -166,9 +164,8 @@ def main():
 
     model =  vgg11_bn().to(device)
     steps = len(train_loader)
-    optimizer = AdaBBbound(model.parameters(), steps=steps, beta = 4./steps, weight_decay=5e-4)
-
-    # optimizer = BBbound(model.parameters(), steps=steps,beta = 4./steps,weight_decay=5e-4)
+    
+    # optimizer = AdaBBbound(model.parameters(), steps=steps, beta = 4./steps, weight_decay=5e-4)
     optimizer = BBbound(model.parameters(), steps=steps,beta = 4./steps,weight_decay=5e-4)
 
     for epoch in range(1, args.epochs + 1):
